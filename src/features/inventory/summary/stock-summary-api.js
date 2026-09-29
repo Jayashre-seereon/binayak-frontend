@@ -1,0 +1,40 @@
+const stockData = [
+  {
+    id: 1,
+    barcode: "BC-001",
+    item: "Choker Necklace",
+    category: "Necklace",
+    product: "Gold Necklace",
+    purity: "22K",
+    grossWt: 45.2,
+    netWt: 43.5,
+    counter: "A",
+    status: "Available",
+  },
+  {
+    id: 2,
+    barcode: "BC-002",
+    item: "Solitaire Ring",
+    category: "Ring",
+    product: "Gold Ring",
+    purity: "18K",
+    grossWt: 8.5,
+    netWt: 7.2,
+    counter: "A",
+    status: "Available",
+  },
+  {
+    id: 3,
+    barcode: "BC-003",
+    item: "Broad Bangle",
+    category: "Bangle",
+    product: "Gold Bangle",
+    purity: "22K",
+    grossWt: 32,
+    netWt: 31.5,
+    counter: "B",
+    status: "Sold",
+  },
+];
+
+export const getStockSummary = () => Promise.resolve(stockData);
