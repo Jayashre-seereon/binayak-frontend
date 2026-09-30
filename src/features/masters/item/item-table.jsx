@@ -14,7 +14,7 @@ const getLabel = (value) => {
   return "-";
 };
 
-export default function ItemTable({ data, onEdit, onDelete }) {
+export default function ItemTable({ data, onEdit, onDelete ,currentPage,itemsPerPage}) {
   const getImageSrc = (item) => {
     const src = item?.imageUrl || item?.image || item?.photo || "";
     if (!src) return "";
@@ -45,7 +45,7 @@ export default function ItemTable({ data, onEdit, onDelete }) {
         <tbody>
         {data.map((item, index) => (
             <tr key={item.id} className="border-t hover:bg-gray-50">
-              <td className="p-3">{index + 1}</td>
+              <td className="p-3">  {(currentPage - 1) * itemsPerPage + index + 1}</td>
               <td className="p-3 font-medium">{getLabel(item.name)}</td>
               <td className="p-3">
                 {getImageSrc(item) ? (
