@@ -132,6 +132,9 @@ export default function SalesPage() {
   const [open, setOpen] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [searchFilter, setSearchFilter] = useState("");
+  const [salesPage, setSalesPage] = useState(1);
+  const [salesPagination, setSalesPagination] = useState({ total: 0, totalPages: 1 });
+  const SALES_PAGE_SIZE = 10;
   const [validationErrors, setValidationErrors] = useState({});
 
   const [state, setState] = useState(initialState());
@@ -158,16 +161,17 @@ export default function SalesPage() {
 
   const barcodeInputRef = useRef(null);
 
-  const loadData = async () => {
+  const loadData = async (page = salesPage, searchValue = searchFilter) => {
     try {
       setLoading(true);
-      const [saleData, partyData, stockData] = await Promise.all([
-        getSales().catch(() => []),
+      const [saleResult, partyData, stockData] = await Promise.all([
+        getSales({ page, limit: SALES_PAGE_SIZE, search: searchValue }).catch(() => ({ sales: [], pagination: {} })),
         getParties(storeId).catch(() => []),
         getStock().catch(() => []),
       ]);
 
-      setSales(Array.isArray(saleData) ? saleData : []);
+      setSales(Array.isArray(saleResult?.sales) ? saleResult.sales : []);
+      setSalesPagination(saleResult?.pagination || { total: 0, totalPages: 1 });
       setParties(
         Array.isArray(partyData?.data)
           ? partyData.data
@@ -809,17 +813,7 @@ export default function SalesPage() {
     }
   };
 
-  const filteredSales = useMemo(() => {
-    if (!searchFilter) return sales;
-    const q = searchFilter.toLowerCase();
-    return sales.filter(
-      (s) =>
-        (s.invoiceNo && s.invoiceNo.toLowerCase().includes(q)) ||
-        (s.customerName && s.customerName.toLowerCase().includes(q)) ||
-        (s.party?.name && s.party.name.toLowerCase().includes(q)) ||
-        (s.customerPhone && s.customerPhone.includes(q))
-    );
-  }, [sales, searchFilter]);
+  const filteredSales = sales;
 
   return (
     <div className="space-y-4 font-sans">
@@ -835,7 +829,7 @@ export default function SalesPage() {
           <Input
             placeholder="Search by Invoice No, Customer Name, Phone..."
             value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
+            onChange={(e) => { const value = e.target.value; setSearchFilter(value); setSalesPage(1); loadData(1, value); }}
             className="pl-9 text-xs focus-visible:ring-blue-500"
           />
         </div>
@@ -922,6 +916,10 @@ export default function SalesPage() {
             )}
           </tbody>
         </table>
+      </div>
+      <div className="flex items-center justify-between mt-4 text-sm">
+        <span>Showing {sales.length} of {salesPagination.total || 0} sales</span>
+        <div className="flex items-center gap-2"><Button variant="outline" disabled={salesPage <= 1 || loading} onClick={() => { const page = salesPage - 1; setSalesPage(page); loadData(page); }}>Previous</Button><span>Page {salesPage} of {salesPagination.totalPages || 1}</span><Button variant="outline" disabled={salesPage >= (salesPagination.totalPages || 1) || loading} onClick={() => { const page = salesPage + 1; setSalesPage(page); loadData(page); }}>Next</Button></div>
       </div>
 
       {/* CREATE SALE MODAL */}

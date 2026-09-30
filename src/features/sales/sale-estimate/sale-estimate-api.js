@@ -1,7 +1,11 @@
 import http from "@/api/axios";
 
-export const getSales = async () => {
-  const res = await http.get("/api/sales/get");
+export const getSales = async (options) => {
+  const res = await http.get("/api/sales/get", options ? { params: options } : undefined);
+  if (options) return {
+    sales: res.data?.sales ?? [],
+    pagination: res.data?.pagination ?? {},
+  };
   return res.data?.sales ?? [];
 };
 
@@ -50,4 +54,3 @@ export const getInventoryByBarcode = async (barcode) => {
     return null;
   }
 };
-
