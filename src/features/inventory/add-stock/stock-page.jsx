@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { notifyError, notifySuccess } from "@/utils/notify";
@@ -25,20 +25,24 @@ export default function StockPage() {
   const [editData, setEditData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const ITEMS_PER_PAGE = 10;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
-  const loadData = async () => {
+  const loadData = async (page = currentPage, searchValue = search) => {
     setLoading(true);
     try {
-      const [stocks, purchases] = await Promise.all([
-        getStock(),
+      const [stockResult, purchases] = await Promise.all([
+        getStock({ page, limit: ITEMS_PER_PAGE, search: searchValue }),
         getPurchases(),
       ]);
       const validPurchases = (Array.isArray(purchases) ? purchases : []).filter(
         (p) => p.purchaseType === "ORNAMENT" || p.purchaseType === "BULLION"
       );
-      setData(stocks);
+      setData(stockResult.inventories);
+      setPagination(stockResult.pagination || { total: 0, totalPages: 1 });
       setPurchaseOptions(validPurchases);
     } catch (error) {
       notifyError(error, "Failed to load inventory.");
@@ -124,7 +128,7 @@ const handleToggleSelect = (id) => {
 };
 
 const handleToggleSelectAll = (checked) => {
-  setSelectedIds(checked ? filteredData.map((row) => row.id) : []);
+  setSelectedIds(checked ? data.map((row) => row.id) : []);
 };
 const handleBulkPrintLabels = async () => {
   if (!selectedIds.length) {
@@ -140,25 +144,6 @@ const handleBulkPrintLabels = async () => {
     notifyError(error, "Failed to generate bulk inventory labels.");
   }
 };
-  const filteredData = useMemo(() => {
-    const q = search.toLowerCase();
-    return data.filter((item) =>
-      [
-        item.inventoryCode,
-        item.purchaseType,
-        item.barcodeNo,
-        item.tagNo,
-        item.purchaseItem?.purchaseItemCode,
-        item.item?.name,
-        item.product?.name,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [data, search]);
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -189,7 +174,7 @@ const handleBulkPrintLabels = async () => {
       <div className="mb-3 flex justify-between">
         <Input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { const value = e.target.value; setSearch(value); setCurrentPage(1); loadData(1, value); }}
           placeholder="Search inventory ..."
             className="w-64"
         />
@@ -199,7 +184,7 @@ const handleBulkPrintLabels = async () => {
         <p className="text-sm text-gray-500">Loading inventory...</p>
       ) : (
         <StockTable
-  data={filteredData}
+  data={data}
   onEdit={handleEdit}
   onDelete={handleDelete}
   onStatusChange={handleStatusChange}
@@ -209,6 +194,10 @@ const handleBulkPrintLabels = async () => {
   onToggleSelectAll={handleToggleSelectAll}
 />
       )}
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <span>Showing {data.length} of {pagination.total || 0} inventory records</span>
+        <div className="flex items-center gap-2"><Button variant="outline" disabled={currentPage <= 1 || loading} onClick={() => { const page = currentPage - 1; setCurrentPage(page); loadData(page); }}>Previous</Button><span>Page {currentPage} of {pagination.totalPages || 1}</span><Button variant="outline" disabled={currentPage >= (pagination.totalPages || 1) || loading} onClick={() => { const page = currentPage + 1; setCurrentPage(page); loadData(page); }}>Next</Button></div>
+      </div>
 
       <StockForm
         open={open}

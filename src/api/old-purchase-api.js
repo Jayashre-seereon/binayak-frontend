@@ -4,8 +4,14 @@ import http from "./axios";
 /* PURCHASE (type = OLD)                                              */
 /* ------------------------------------------------------------------ */
 
-export const getOldPurchases = async () => {
-  const res = await http.get(`/api/purchases/get?purchaseType=OLD`);
+export const getOldPurchases = async (options) => {
+  const res = await http.get(`/api/purchases/get`, {
+    params: { purchaseType: "OLD", ...(options || {}) },
+  });
+  if (options) return {
+    purchases: res.data?.purchases ?? [],
+    pagination: res.data?.pagination ?? {},
+  };
   return res.data?.purchases ?? [];
 };
 

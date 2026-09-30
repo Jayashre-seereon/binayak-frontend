@@ -1,7 +1,11 @@
 import http from "@/api/axios";
 
-export const getStock = async () => {
-  const res = await http.get("/api/inventories/get");
+export const getStock = async (options) => {
+  const res = await http.get("/api/inventories/get", options ? { params: options } : undefined);
+  if (options) return {
+    inventories: res.data?.inventories ?? [],
+    pagination: res.data?.pagination ?? {},
+  };
   return res.data?.inventories ?? [];
 };
 

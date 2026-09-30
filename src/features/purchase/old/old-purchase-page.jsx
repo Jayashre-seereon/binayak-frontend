@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DeleteModal from "../../../utils/DeleteModal";
@@ -20,6 +20,9 @@ import {
 export default function OldPurchasePage() {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+  const ITEMS_PER_PAGE = 10;
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -28,9 +31,11 @@ export default function OldPurchasePage() {
   const [previewPurchase, setPreviewPurchase] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (page = currentPage, searchValue = search) => {
     try {
-      setData(await getOldPurchases());
+      const result = await getOldPurchases({ page, limit: ITEMS_PER_PAGE, search: searchValue });
+      setData(result.purchases);
+      setPagination(result.pagination);
     } catch (error) {
       notifyError(error, "Failed to load purchases.");
     }
@@ -99,27 +104,6 @@ export default function OldPurchasePage() {
     }
   };
 
-  const filteredData = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return data;
-
-    return data.filter((item) =>
-      [
-        item.invoiceNo,
-        item.customerName,
-        item.referenceNo,
-        item.purchaseType,
-        item.date,
-        item.party?.name,
-        item.voucher,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [data, search]);
-
   const handleDownload = async (id) => {
     try {
       const blob = await getPurchasePdf(id, 1);
@@ -151,19 +135,23 @@ export default function OldPurchasePage() {
       <div className="mb-3 flex justify-between">
         <Input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { const value = e.target.value; setSearch(value); setCurrentPage(1); loadData(1, value); }}
           placeholder="Search by invoice no..."
           className="w-64 "
         />
       </div>
 
       <OldPurchaseTable
-        data={filteredData}
+        data={data}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onDownload={handleDownload}
         onPreview={handlePreview}
       />
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <span>Showing {data.length} of {pagination.total || 0} purchases</span>
+        <div className="flex items-center gap-2"><Button variant="outline" disabled={currentPage <= 1} onClick={() => { const page = currentPage - 1; setCurrentPage(page); loadData(page); }}>Previous</Button><span>Page {currentPage} of {pagination.totalPages || 1}</span><Button variant="outline" disabled={currentPage >= (pagination.totalPages || 1)} onClick={() => { const page = currentPage + 1; setCurrentPage(page); loadData(page); }}>Next</Button></div>
+      </div>
 
       <OldPurchaseForm
         open={open}

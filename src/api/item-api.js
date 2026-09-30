@@ -1,8 +1,22 @@
 import http from "@/api/axios";
 
-export const getItems = async () => {
-  const res = await http.get("/api/items/get");
-  return res.data?.items || [];
+export const getItems = async (
+  page = 1,
+  limit = 10,
+  search = ""
+) => {
+  const res = await http.get("/api/items/get", {
+    params: {
+      page,
+      limit,
+      search,
+    },
+  });
+
+  return {
+    items: res.data?.items || [],
+    pagination: res.data?.pagination || {},
+  };
 };
 
 export const getItemsByProduct = async (productId) => {
