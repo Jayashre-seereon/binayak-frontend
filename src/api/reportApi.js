@@ -29,3 +29,19 @@ export const exportPurchaseReportExcelApi = async (params = {}) => {
   });
   return res.data;
 };
+
+export const exportSalesReportPdfApi = async (params = {}) => {
+  const res = await http.get("/api/sales/report/export-pdf", {
+    params,
+    responseType: "blob",
+  });
+  return res.data;
+};
+
+export const exportPurchaseReportPdfApi = async (params = {}) => {
+  const res = await http.get("/api/purchases/report/export-pdf", {
+    params,
+    responseType: "blob",
+  });
+  return res.data;
+};
