@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Loader2 } from "lucide-react";
+import { FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+
 
 import ReportTable from "./reportTable";
 import {
   getSalesReport,
   getPurchaseReport,
-  exportSalesReportExcelApi,
-  exportPurchaseReportExcelApi,
+  exportSalesReportPdfApi,
+  exportPurchaseReportPdfApi,
 } from "@/api/reportApi";
 
 const periodOptions = [
@@ -156,7 +156,7 @@ export default function ReportPage() {
     setFilteredData(result);
   }, [search, data]);
 
-  const handleExportExcel = async () => {
+  const handleExportPdf = async () => {
     try {
       setExporting(true);
       const params = {
@@ -178,98 +178,26 @@ export default function ReportPage() {
 
       let blob;
       if (activeTab === "sales") {
-        blob = await exportSalesReportExcelApi(params);
+        blob = await exportSalesReportPdfApi(params);
       } else {
-        blob = await exportPurchaseReportExcelApi(params);
+        blob = await exportPurchaseReportPdfApi(params);
       }
 
-      const blobUrl = window.URL.createObjectURL(new Blob([blob]));
+      const blobUrl = window.URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
       const link = document.createElement("a");
       link.href = blobUrl;
       const filename = `${
         activeTab === "sales" ? "Sales" : "Purchase"
-      }_Report_${period}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      }_Report_${period}_${new Date().toISOString().split("T")[0]}.pdf`;
       link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-      toast.success("Excel report downloaded successfully.");
+      toast.success("PDF report downloaded successfully.");
     } catch (error) {
-      console.warn("Backend Excel export error, running client export:", error);
-      // Fallback: Client-side XLSX export
-      try {
-        const exportRows = filteredData.map((row, idx) => {
-          if (activeTab === "sales") {
-            const net = Number(
-              row.netPayable || row.payableAmount || row.totalAmount || 0
-            );
-            const paid = Number(row.paidAmount || 0);
-            return {
-              "Sl No": idx + 1,
-              "Date": row.saleDate
-                ? new Date(row.saleDate).toLocaleDateString("en-IN")
-                : "-",
-              "Invoice No": row.invoiceNo || "-",
-              "Customer / Party":
-                row.customerName || row.party?.name || "-",
-              "Phone": row.customerPhone || "-",
-              "Items": row.items?.length || 0,
-              "Gross Amount (₹)": Number(
-                row.grossAmount || row.grossTotal || net
-              ),
-              "Discount (₹)":
-                Number(row.discount || 0) + Number(row.offerDiscount || 0),
-              "GST (₹)": Number(row.totalTax || row.taxAmount || 0),
-              "Old Gold (₹)": Number(row.oldGoldAmount || 0),
-              "Advance (₹)": Number(row.advanceAmount || 0),
-              "Net Payable (₹)": net,
-              "Paid (₹)": paid,
-              "Due (₹)": Number(row.dueAmount ?? Math.max(0, net - paid)),
-            };
-          } else {
-            const net = Number(
-              row.netPayable || row.totalAmount || row.grossAmount || 0
-            );
-            const paid = Number(row.paidAmount || 0);
-            return {
-              "Sl No": idx + 1,
-              "Date": row.date
-                ? new Date(row.date).toLocaleDateString("en-IN")
-                : "-",
-              "Invoice No": row.invoiceNo || "-",
-              "Purchase Type": row.purchaseType || "-",
-              "Party / Customer":
-                row.party?.name || row.customerName || "-",
-              "Phone": row.customerPhone || row.party?.phone || "-",
-              "Items": row.items?.length || 0,
-              "Gross Amount (₹)": Number(row.grossAmount || net),
-              "Net Amount (₹)": net,
-              "Paid (₹)": paid,
-              "Balance (₹)": Number(
-                row.balanceAmount ?? row.dueAmount ?? Math.max(0, net - paid)
-              ),
-            };
-          }
-        });
-
-        const worksheet = XLSX.utils.json_to_sheet(exportRows);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(
-          workbook,
-          worksheet,
-          activeTab === "sales" ? "Sales Report" : "Purchase Report"
-        );
-        XLSX.writeFile(
-          workbook,
-          `${
-            activeTab === "sales" ? "Sales" : "Purchase"
-          }_Report_${period}_${new Date().toISOString().split("T")[0]}.xlsx`
-        );
-        toast.success("Excel report downloaded successfully.");
-      } catch (clientErr) {
-        toast.error("Failed to download Excel report.");
-      }
+      console.error("Report PDF export error:", error);
+      toast.error("Failed to download PDF report.");
     } finally {
       setExporting(false);
     }
@@ -391,15 +319,15 @@ export default function ReportPage() {
           <Button
             variant="outline"
             className="border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 flex items-center gap-2"
-            onClick={handleExportExcel}
+            onClick={handleExportPdf}
             disabled={exporting || loading}
           >
             {exporting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              <FileDown className="h-4 w-4 text-emerald-600" />
             )}
-            <span>{exporting ? "Exporting..." : "Download Excel"}</span>
+            <span>{exporting ? "Exporting..." : "Download PDF"}</span>
           </Button>
         </div>
       </div>
